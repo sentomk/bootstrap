@@ -37,7 +37,8 @@ jobs:
         run: |
           prs=$(gh pr list -R "$REPO" --state open \
             --json number,statusCheckRollup,mergeable \
-            --jq '.[] | select(.statusCheckRollup | map(select(.conclusion != "" and .conclusion != "SUCCESS")) | length == 0) | select(.mergeable == "MERGEABLE") | .number')
+            --jq '.[] | select(.statusCheckRollup | map(select(.conclusion != "" and .conclusion != "SUCCESS")) | length == 0) | select(.mergeable == "MERGEABLE") | .number' \
+            | sort -n)
 
           if [ -z "$prs" ]; then
             echo "No PRs with all checks passed."
