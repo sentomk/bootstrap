@@ -113,7 +113,9 @@ jobs:
 
           # install-llvm-libraries + install-llvm-headers don't install
           # llvm-config itself — the binary lives in the build tree.
-          # Copy it manually.
+          # Copy it manually.  Those targets never create ~/llvm-install/bin
+          # (no tools are installed), so it must exist before we copy into it.
+          mkdir -p ~/llvm-install/bin
           cp /tmp/llvm-build/bin/llvm-config ~/llvm-install/bin/
 
           # Clean up source/build trees to save space (cache only the install).
@@ -258,7 +260,9 @@ jobs:
           ninja install-llvm-libraries install-llvm-headers llvm-config
           # install-llvm-libraries + install-llvm-headers only install
           # libraries and headers; ninja builds llvm-config in the build
-          # tree but does not install it.  Copy it manually.
+          # tree but does not install it, and never creates
+          # /llvm-install/bin.  Create it, then copy manually.
+          mkdir -p /llvm-install/bin
           cp /llvm-build/bin/llvm-config.exe /llvm-install/bin/
 
       - name: Install GN
