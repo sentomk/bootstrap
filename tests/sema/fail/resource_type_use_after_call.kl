@@ -1,0 +1,21 @@
+// RUN: check
+// COMPILE-FAIL
+// EXPECT-EXIT: 65
+// CHECK-ERR: was transferred and is no longer valid
+
+// A resource-type variable used after being passed to a bare-T parameter
+// must be rejected (ADR 0028 D4: call boundary = transfer).
+
+struct File {
+    int fd;
+
+    @destroy { }
+}
+
+void sink(File f) { }
+
+void main() {
+    File a = File { 1 };
+    sink(a);    // transfer: a -> sink
+    sink(a);    // ERROR: a was transferred
+}

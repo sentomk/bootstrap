@@ -1,0 +1,37 @@
+// RUN: check
+// EXPECT-EXIT: 0
+
+// A struct with @destroy is a resource type (move-only).
+// A struct without @destroy is a value type (field-wise Copy).
+
+struct Fd {
+    int value;
+}
+
+struct File {
+    int fd;
+
+    @destroy {
+        // sema check only — no codegen yet
+    }
+}
+
+File make_file(int fd) {
+    return File { fd };
+}
+
+void sink(File f) { }
+void sink2(Fd f) { }
+
+void main() {
+    File a = make_file(3);
+    File b = a;          // transfer: a -> b
+    sink(b);              // transfer: b -> sink
+
+    // Fd is a value type: plain assignment copies
+    Fd x = Fd { 3 };
+    Fd y = x;             // copy, not transfer
+    use_fd(y);
+}
+
+void use_fd(Fd f) { }
