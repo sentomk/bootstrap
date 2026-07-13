@@ -1,0 +1,13 @@
+// RUN: check
+// Fixed-size array: struct field with T[N] type.
+struct Vec3 {
+  float[3] components;
+}
+
+int main() {
+  Vec3 v = Vec3 { [1.0, 2.0, 3.0] };
+  float x = v.components[0];
+  x = v.components[1];
+  x = v.components[2];
+  return 0;
+}

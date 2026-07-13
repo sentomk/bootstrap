@@ -412,6 +412,9 @@ bool types_assignable(const Type &from, const Type &to) {
     return key_ok && val_ok;
   }
   if (from.kind == TypeKind::Array && to.kind == TypeKind::Array) {
+    if (from.fixed_size > 0 && to.fixed_size > 0 && from.fixed_size != to.fixed_size) {
+      return false;
+    }
     if (!from.element_type || !to.element_type) {
       return true;
     }
@@ -462,6 +465,8 @@ bool types_equal(const Type &a, const Type &b) {
   case TypeKind::Enum:
     return a.name == b.name;
   case TypeKind::Array: {
+    if (a.fixed_size != b.fixed_size)
+      return false;
     if (!a.element_type || !b.element_type)
       return !a.element_type && !b.element_type;
     return types_equal(*a.element_type, *b.element_type);
@@ -1848,6 +1853,16 @@ void TypeChecker::visit(const ast::VarDeclStmt &var_decl) {
                                         " to variable of type " + type_to_string(var_type) + ".");
       } else {
         check_borrow_argument(*var_decl.init, var_type, var_decl.location);
+        if (var_type.fixed_size > 0) {
+          const ast::Expr &init_expr = strip_borrow_marker(*var_decl.init);
+          if (const auto *arr_lit = dynamic_cast<const ast::ArrayLiteralExpr *>(&init_expr)) {
+            if (static_cast<int>(arr_lit->elements.size()) != var_type.fixed_size) {
+              error_at(var_decl.location,
+                       "Fixed-size array expects " + std::to_string(var_type.fixed_size) +
+                           " elements, got " + std::to_string(arr_lit->elements.size()) + ".");
+            }
+          }
+        }
         // Resource type init transfer (ADR 0028 D6): `T b = a;` where T is_resource
         if (var_type.is_resource) {
           const ast::Expr &ref_expr = strip_borrow_marker(*var_decl.init);
@@ -2926,6 +2941,14 @@ Type TypeChecker::check_call(const ast::CallExpr &call_expr) {
     }
     if (obj_type.kind == TypeKind::Array) {
       const std::string &method = field_callee->field_name;
+      // Fixed-size arrays reject size-mutating methods.
+      if (obj_type.fixed_size > 0) {
+        if (method == "push" || method == "pop" || method == "resize" || method == "insert" ||
+            method == "remove" || method == "clear") {
+          error_at(call_expr.location, "'" + method + "()' is not allowed on fixed-size arrays.");
+          return void_type();
+        }
+      }
       if (method == "len") {
         if (!call_expr.args.empty()) {
           error_at(call_expr.location, "len() takes no arguments.");
@@ -3578,6 +3601,17 @@ Type TypeChecker::check_struct_literal(const ast::StructLiteralExpr &struct_lit)
       error_at(struct_lit.fields[i].value->location, "Field '" + fields_def[i].name + "' expects " +
                                                          type_to_string(expected) + ", got " +
                                                          type_to_string(val_type) + ".");
+    }
+    if (expected.kind == TypeKind::Array && expected.fixed_size > 0) {
+      if (const auto *arr_lit =
+              dynamic_cast<const ast::ArrayLiteralExpr *>(struct_lit.fields[i].value.get())) {
+        if (static_cast<int>(arr_lit->elements.size()) != expected.fixed_size) {
+          error_at(struct_lit.fields[i].value->location,
+                   "Field '" + fields_def[i].name + "' expects " +
+                       std::to_string(expected.fixed_size) + " elements, got " +
+                       std::to_string(arr_lit->elements.size()) + ".");
+        }
+      }
     }
   }
   for (size_t i = fields_def.size(); i < struct_lit.fields.size(); ++i) {

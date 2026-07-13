@@ -74,7 +74,8 @@ Type::Type(const Type &other)
       variants(other.variants),
       variant_param_types(other.variant_param_types),
       nullable(other.nullable),
-      is_resource(other.is_resource) {}
+      is_resource(other.is_resource),
+      fixed_size(other.fixed_size) {}
 
 Type &Type::operator=(const Type &other) {
   if (this != &other) {
@@ -89,6 +90,7 @@ Type &Type::operator=(const Type &other) {
     variant_param_types = other.variant_param_types;
     nullable = other.nullable;
     is_resource = other.is_resource;
+    fixed_size = other.fixed_size;
   }
   return *this;
 }
@@ -113,6 +115,9 @@ bool Type::is_compatible_with(const Type &other) const {
       return name == other.name;
     }
     if (kind == TypeKind::Array) {
+      if (fixed_size > 0 && other.fixed_size > 0 && fixed_size != other.fixed_size) {
+        return false;
+      }
       if (!element_type || !other.element_type) {
         return true;
       }

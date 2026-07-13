@@ -1,0 +1,8 @@
+// RUN: check
+// COMPILE-FAIL
+// EXPECT-EXIT: 65
+// Fixed-size array: element count mismatch in declaration.
+int main() {
+  int[3] a = [1, 2];
+  return 0;
+}

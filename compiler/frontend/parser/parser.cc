@@ -20,9 +20,16 @@ bool is_assignment_operator(TokenType type) {
 }
 
 void skip_array_and_nullable_suffix(const std::vector<Token> &tokens, size_t &pos) {
+  // T[] — dynamic array suffix.
   while (pos + 1 < tokens.size() && tokens[pos].type == TokenType::LEFT_BRACKET &&
          tokens[pos + 1].type == TokenType::RIGHT_BRACKET) {
     pos += 2;
+  }
+  // T[N] — fixed-size array suffix.
+  if (pos + 2 < tokens.size() && tokens[pos].type == TokenType::LEFT_BRACKET &&
+      tokens[pos + 1].type == TokenType::INTEGER &&
+      tokens[pos + 2].type == TokenType::RIGHT_BRACKET) {
+    pos += 3;
   }
   if (pos < tokens.size() && tokens[pos].type == TokenType::QUESTION) {
     ++pos;

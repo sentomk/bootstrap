@@ -1,0 +1,9 @@
+// RUN: check
+// COMPILE-FAIL
+// EXPECT-EXIT: 65
+// Fixed-size array: clear is not allowed.
+int main() {
+  int[3] a = [1, 2, 3];
+  a.clear();
+  return 0;
+}

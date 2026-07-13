@@ -1,0 +1,9 @@
+// RUN: check
+// COMPILE-FAIL
+// EXPECT-EXIT: 65
+// Fixed-size array: resize is not allowed.
+int main() {
+  int[3] a = [1, 2, 3];
+  a.resize(5, 0);
+  return 0;
+}
